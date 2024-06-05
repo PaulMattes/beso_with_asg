@@ -306,6 +306,12 @@ class DiffusionGPT(nn.Module):
         goal_embed = self.tok_emb(goals)
         action_embed = self.action_emb(actions)
         
+        '''
+        During training for images: state -> bs ws obs
+                                    goals -> bs gws obs
+                                    actions -> bs ws 9
+        '''
+        
         # if not uncond:
         if self.goal_conditioned:
             position_embeddings = self.pos_emb[

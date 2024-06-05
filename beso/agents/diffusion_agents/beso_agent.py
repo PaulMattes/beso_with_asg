@@ -15,6 +15,7 @@ from tqdm import tqdm
 import wandb
 
 from beso.agents.base_agent import BaseAgent
+from beso.agents.input_encoders.vision_encoder import ResNet18
 from beso.networks.ema_helper.ema import ExponentialMovingAverage
 from beso.networks.scaler.scaler_class import Scaler
 from beso.agents.diffusion_agents.k_diffusion.gc_sampling import *
@@ -33,7 +34,7 @@ class BesoAgent(BaseAgent):
             input_encoder: DictConfig,
             optimization: DictConfig,
             device: str,
-            obs_modalities: list,
+            obs_modalities: str,
             goal_modalities: list,
             target_modality: str,
             max_train_steps: int,
@@ -60,7 +61,7 @@ class BesoAgent(BaseAgent):
             use_kde: bool=False,
             patience: int=10,
     ):
-        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs)
+        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs, window_size, goal_window_size)
 
         self.ema_helper = ExponentialMovingAverage(self.model.get_params(), decay, self.device)
         self.use_ema = use_ema
@@ -89,8 +90,7 @@ class BesoAgent(BaseAgent):
         self.update_ema_every_n_steps = update_ema_every_n_steps
         self.patience = patience
         # get the window size for prediction
-        self.window_size = window_size
-        self.goal_window_size = goal_window_size
+        
         # bool if the model should only output the last action or all actions in a sequence
         self.pred_last_action_only = pred_last_action_only
         # set up the rolling window contexts
@@ -102,7 +102,7 @@ class BesoAgent(BaseAgent):
         # use kernel density estimator if true
         self.use_kde = use_kde
         self.noise_scheduler = 'exponential'
-
+        
     def get_scaler(self, scaler: Scaler):
         """
         Define the scaler from the Workspace class used to scale state and output data if necessary

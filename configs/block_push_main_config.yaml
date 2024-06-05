@@ -5,7 +5,7 @@ defaults:
 log_dir: logs/block_pushing/
 plot_dir: plots/block_pushing/
 plot_name: ${now:%Y-%m-%d}.png
-data_path: /path/to/beso/environments/data/cbet_datasets/multimodal_push_fixed_target
+data_path: /home/paul/Desktop/datasets/cbet_datasets/multimodal_push_fixed_target
 
 hydra:
   run:
@@ -17,7 +17,7 @@ hydra:
 group: group_name
 
 wandb:
-  entity: add_wandb_acc_name
+  entity: layen
   project: beso_experiments
 
 # general params

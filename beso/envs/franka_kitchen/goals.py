@@ -5,7 +5,7 @@ from typing import Optional
 import numpy as np
 import torch
 
-from beso.envs.franka_kitchen.dataloader import RelayKitchenTrajectoryDataset
+from beso.envs.franka_kitchen.dataloader import RelayKitchenTrajectoryDataset, RelayKitchenVisionTrajectoryDataset
 from beso.envs.utils import get_split_idx
 
 '''
@@ -29,13 +29,12 @@ def rearrange_array(a1, a2):
 
 
 def get_goal_fn(
-    data_path,
+    relay_traj,
     goal_conditional: Optional[str] = None,
     goal_seq_len: Optional[int] = None,
     sequential_goal: Optional[bool] = None,
     seed: Optional[int] = None,
     train_fraction: Optional[float] = None,
-    device: str = 'cuda'
 ):
     """
     Returns a goal function based on the specified conditions.
@@ -62,9 +61,7 @@ def get_goal_fn(
           It also returns the task name associated with the goal.
         - If `goal_conditional` is "onehot", the goal function returns the one-hot encoded goal corresponding to the `frame_idx`.
     """
-    relay_traj = RelayKitchenTrajectoryDataset(
-        data_path, device=device, onehot_goals=True
-    )
+    relay_traj = relay_traj
     train_idx, val_idx = get_split_idx(
         len(relay_traj),
         seed=seed,

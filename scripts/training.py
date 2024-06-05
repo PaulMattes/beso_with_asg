@@ -19,7 +19,7 @@ OmegaConf.register_new_resolver(
 )
 
 
-@hydra.main(config_path="../configs", config_name="block_push_main_config.yaml")
+@hydra.main(config_path="../configs", config_name="franka_kitchen_main_config.yaml")
 def main(cfg: DictConfig) -> None:
     
     np.random.seed(cfg.seed)
@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
         project=cfg.wandb.project, 
         entity=cfg.wandb.entity,
         group=cfg.group,
-        # mode="disabled",
+        mode="disabled",
         config=wandb.config
     )
 
@@ -59,6 +59,7 @@ def main(cfg: DictConfig) -> None:
                 cfg.evaluate_multigoal,
                 cfg.evaluate_sequential,
                 log_wandb=True,
+                store_video = True,
                 )
         else:
             result_dict = workspace_manager.test_agent(
@@ -66,13 +67,15 @@ def main(cfg: DictConfig) -> None:
                 cfg.evaluate_multigoal,
                 cfg.evaluate_sequential,
                 log_wandb=True,
+                store_video = True,
                 )
     else:
         result_dict = workspace_manager.test_agent(
             agent,
             cfg.evaluate_multigoal,
             cfg.evaluate_sequential,
-            log_wandb=True
+            log_wandb=True,
+            store_video = True,
             )
     log.info("done")
     wandb.finish()

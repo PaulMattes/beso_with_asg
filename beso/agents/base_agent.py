@@ -6,6 +6,7 @@ import torch
 from omegaconf import DictConfig
 import hydra
 
+from beso.agents.input_encoders.vision_encoder import ResNet18
 from beso.networks.scaler.scaler_class import Scaler
 
 # A logger for this file
@@ -26,6 +27,8 @@ class BaseAgent(abc.ABC):
             max_train_steps: int,
             eval_every_n_steps: int,
             max_epochs: int,
+            window_size: int,
+            goal_window_size: int,
     ):
         self.scaler = None
         self.model = hydra.utils.instantiate(model).to(device)
@@ -35,10 +38,15 @@ class BaseAgent(abc.ABC):
         self.obs_modalities = obs_modalities
         self.goal_modalities = goal_modalities
         self.target_modality = target_modality
-        self.input_encoder = hydra.utils.instantiate(input_encoder)
+        if obs_modalities == "state":
+            self.input_encoder = hydra.utils.instantiate(input_encoder)
+        elif obs_modalities == "image":
+            self.input_encoder = ResNet18(device, window_size, goal_window_size)
         self.device = device
         self.steps = 0
         self.epochs = max_epochs
+        self.window_size = window_size
+        self.goal_window_size = goal_window_size
         self.max_train_steps = int(max_train_steps)
         self.eval_every_n_steps = eval_every_n_steps
         self.working_dir = os.getcwd()
@@ -107,7 +115,7 @@ class BaseAgent(abc.ABC):
             self.model.load_state_dict(torch.load(os.path.join(weights_path, sv_name)))
         log.info('Loaded pre-trained model parameters')
     
-    @torch.no_grad()
+    #@torch.no_grad()
     def process_batch(self, batch: dict, predict: bool = True):
         """
         Processes a batch of data and returns the state, action and goal

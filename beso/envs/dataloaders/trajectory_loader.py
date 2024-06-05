@@ -11,7 +11,6 @@ from typing import Union, Callable, Optional, Sequence, List, Any
 from tqdm import tqdm
 import abc
 from torch import default_generator, randperm
-from torch._utils import _accumulate
 
 # from beso.envs.toy_task_1.multipath_dataset import MultiPathTrajectoryDataset
 
@@ -256,7 +255,7 @@ def random_split_traj(
     indices = randperm(sum(lengths), generator=generator).tolist()
     return [
         TrajectorySubset(dataset, indices[offset - length : offset])
-        for offset, length in zip(_accumulate(lengths), lengths)
+        for offset, length in zip(torch.cumsum(torch.tensor(lengths), dim=0).tolist(), lengths)
     ]
 
 

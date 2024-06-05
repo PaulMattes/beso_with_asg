@@ -15,11 +15,13 @@ import gym
 import matplotlib.pyplot as plt
 
 # from mpl_toolkits.axes_grid.inset_locator import InsetPosition
+from beso.envs.franka_kitchen.goals import get_goal_fn
+from beso.envs.franka_kitchen.kitchen_env import KitchenWrapper
 from beso.workspaces.base_workspace_manager import BaseWorkspaceManger
 from beso.networks.scaler.scaler_class import Scaler
 from beso.envs.utils import get_split_idx
 from beso.agents.diffusion_agents.beso_agent import BesoAgent
-from beso.envs.franka_kitchen.dataloader import RelayKitchenTrajectoryDataset
+from beso.envs.franka_kitchen.dataloader import RelayKitchenTrajectoryDataset, RelayKitchenVisionTrajectoryDataset
 
 log = logging.getLogger(__name__)
 
@@ -30,8 +32,6 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             seed: int,
             device: str,
             dataset_fn: DictConfig,
-            seq_goal_fn: DictConfig,
-            multi_goal_fn: DictConfig,
             eval_n_times: int,
             eval_n_steps,
             scale_data: bool,
@@ -40,7 +40,9 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             train_batch_size: int = 256,
             test_batch_size: int = 256,
             num_workers: int = 4,
-            train_fraction: float = 0.95
+            train_fraction: float = 0.95,
+            obs_modalities: str = 'state',
+            goal_seq_len: int = 4,
     ):
         super().__int__(seed, device)
 
@@ -54,27 +56,24 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         self.train_batch_size = train_batch_size
         self.data_path = dataset_fn.data_directory
         self.test_batch_size = test_batch_size
-        self.datasets = hydra.utils.call(dataset_fn)
+        self.datasets, self.relay_traj = hydra.utils.call(dataset_fn)
         self.train_set, self.test_set = self.datasets
         self.num_workers = num_workers
         self.train_fraction = train_fraction
         self.scale_data = scale_data
         self.scaler = None
-        self.data_loader = self.make_dataloaders()
         self.render = render
         self.env_name = env_name
         self.goal_conditional = dataset_fn.goal_conditional
-        self.relay_traj = RelayKitchenTrajectoryDataset(
-            self.data_path, onehot_goals=True
-        )
+        self.obs_modalities = obs_modalities
         self.success_rate_1 = 0
         self.success_rate_2 = 0
         self.success_rate_3 = 0
         self.success_rate_4 = 0
         self.success_rate_5 = 0
         # get goal function for evaluation       
-        self.seq_goals_fn = hydra.utils.call(seq_goal_fn)
-        self.multi_goals_fn = hydra.utils.call(multi_goal_fn)
+        self.seq_goals_fn = get_goal_fn(relay_traj=self.relay_traj, goal_seq_len=goal_seq_len, goal_conditional=True, seed=seed, train_fraction=1)
+        self.multi_goals_fn = get_goal_fn(relay_traj=self.relay_traj, goal_seq_len=goal_seq_len, goal_conditional=False, seed=seed, train_fraction=1)
         # check multimdodality of solutions
         self.solved_tasks = {
             'n_bottom burner': 0,
@@ -105,6 +104,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         self.used_trajectories = []
         self.traj_count = {}
         # self.return_expert_task_completion()
+        self.data_loader = self.make_dataloaders()
     
     def reset_tasks(self):
         """
@@ -141,10 +141,16 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         Returns:
             dict: A dictionary containing the created train and test dataloaders.
         """
-        self.scaler = Scaler(
-            self.train_set.dataset.dataset.get_all_observations(),
-            self.train_set.dataset.dataset.get_all_actions(),
-            self.scale_data, self.device)
+        if self.obs_modalities == 'state':
+            self.scaler = Scaler(
+                self.train_set.dataset.dataset.get_all_observations(),
+                self.train_set.dataset.dataset.get_all_actions(),
+                self.scale_data, self.device)
+        elif self.obs_modalities == 'image':
+            self.scaler = Scaler(
+                torch.tensor([[0,1,2,3], [0,1,2,3]]),
+                self.train_set.dataset.dataset.get_all_actions(),
+                self.scale_data, self.device)
 
         train_dataloader = torch.utils.data.DataLoader(
             self.train_set,
@@ -242,7 +248,11 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         """
         if store_video:
             import imageio
-        self.env = gym.make(self.env_name)
+        
+        if self.obs_modalities == 'state':
+            self.env = gym.make(self.env_name)
+        elif self.obs_modalities == 'image':
+            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True, resnet=agent.input_encoder)
         self.env.seed(self.seed)
         log.info('Starting trained model evaluation on the multimodal kitchen environment')
         rewards = []
@@ -279,9 +289,14 @@ class FrankaKitchenManager(BaseWorkspaceManger):
                 # get current goal
                 if self.goal_conditional == "onehot":
                     goal = self.multi_goals_fn(obs, goal_idx, n)
-                obs = np.hstack([np.array(v) for v in list(obs)])
-                # reshape and make a tensor out of the obs, we onlt need the first 30 variables
-                obs = torch.from_numpy(obs.reshape(1, len(obs))).to(torch.float32)[:, :30]
+                
+                if self.obs_modalities == 'state':
+                    obs = np.hstack([np.array(v) for v in list(obs)])
+                    # reshape and make a tensor out of the obs, we onlt need the first 30 variables
+                    obs = torch.from_numpy(obs.reshape(1, len(obs))).to(torch.float32)[:, :30]
+                elif self.obs_modalities == 'image':
+                    obs = obs #torch.unsqueeze(obs, 0)
+                    goal = goal #torch.unsqueeze(goal, 0)
                 if isinstance(agent, BesoAgent):
                     pred_action = agent.predict(
                         {'observation': obs,

@@ -5,7 +5,9 @@ import os
 import numpy as np
 import torch
 import einops
-
+import gym
+import torch.nn.functional as F
+from torchvision import models, transforms
 
 OBS_ELEMENT_INDICES = {
     "bottom burner": np.array([11, 12]),
@@ -33,6 +35,40 @@ logging.basicConfig(
     filemode="w",
 )
 
+class KitchenWrapper(gym.Wrapper):
+    def __init__(self, env, visual_input, resnet):
+        super(KitchenWrapper, self).__init__(env)
+        self.env = env
+        self.visual_input = visual_input
+        self.resnet18 = resnet
+        self.transform = transforms.Compose([transforms.ToTensor(),
+                                        transforms.Resize((128,128)),
+                                        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
+                                        transforms.Grayscale()
+                                    ])
+
+    def reset(self, *args, **kwargs):
+        obs = self.env.reset(*args, **kwargs)
+        if self.visual_input:
+            return_obs = self.render(mode="rgb_array")
+            return self.preprocess_img(return_obs)
+        else:
+            return obs
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        if self.visual_input:
+            return_obs = self.env.render(mode="rgb_array")
+            return self.preprocess_img(return_obs), reward, done, info
+        else:
+            return obs, reward, done, info
+    
+    def preprocess_img(self, img):
+        tensor_img = self.transform(img.copy())
+        tensor_img = einops.rearrange(tensor_img, "bs w h -> bs (w h)")
+        #with torch.no_grad():
+            #epi_img_tensor = torch.squeeze(self.resnet18.embed(tensor_img.cuda()), 0)
+        return tensor_img
 
 class KitchenBase(KitchenTaskRelaxV1):
     # A string of element names. The robot's task is then to modify each of
