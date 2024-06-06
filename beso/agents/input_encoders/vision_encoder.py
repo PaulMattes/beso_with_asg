@@ -27,10 +27,9 @@ class ResNet18(nn.Module):
         org_len = len(x.shape)
         
         if org_len == 2:
-            x = einops.rearrange(x, "bs (w h) -> bs w h", w=128, h=128)
+            x = einops.rearrange(x, "bs (c w h) -> bs c w h", c=3, w=224, h=224)
         else:
-            x = einops.rearrange(x, "bs ws (w h) -> (bs ws) w h", w=128, h=128)
-        x = einops.repeat(x, "bsws w h -> bsws c w h", c=3)
+            x = einops.rearrange(x, "bs ws (c w h) -> (bs ws) c w h", c=3, w=224, h=224)
         
         x = self.embed(x)
 

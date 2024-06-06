@@ -135,9 +135,8 @@ class BesoAgent(BaseAgent):
         interrupt_training = False
         best_test_mse = 1e10
         mean_mse = 1e10
-        generator = iter(train_loader)
         for epoch in tqdm(range(epochs)):
-            for batch in test_loader:
+            for batch in tqdm(test_loader):
                 test_mse = []
                 mean_mse = self.evaluate(batch)
                 test_mse.append(mean_mse)
@@ -149,7 +148,7 @@ class BesoAgent(BaseAgent):
                 break
             
             batch_losses = []
-            for batch in train_loader:
+            for batch in tqdm(train_loader):
                 batch_loss = self.train_step(batch)
                 batch_losses.append(batch_loss)
                 self.steps += 1
@@ -183,7 +182,7 @@ class BesoAgent(BaseAgent):
             # run a test batch every n steps
             if not self.steps % self.eval_every_n_steps:
                 test_mse = []
-                for batch in test_loader:
+                for batch in tqdm(test_loader):
                     mean_mse = self.evaluate(batch)
                     test_mse.append(mean_mse)
                 avrg_test_mse = sum(test_mse) / len(test_mse)

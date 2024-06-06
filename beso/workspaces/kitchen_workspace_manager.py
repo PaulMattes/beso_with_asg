@@ -164,7 +164,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             self.test_set,
             batch_size=self.test_batch_size,
             shuffle=False,
-            num_workers=self.num_workers,
+            num_workers=0,
             pin_memory=True,
         )
         return {
@@ -257,8 +257,8 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         log.info('Starting trained model evaluation on the multimodal kitchen environment')
         rewards = []
         results = []
-        frames = [] 
         for goal_idx in range(self.eval_n_times):
+            frames = []
             if goal_idx > 536:
                 goal_idx = goal_idx - 536
             total_reward = 0
@@ -318,15 +318,15 @@ class FrankaKitchenManager(BaseWorkspaceManger):
                 
                 obs, reward, done, info = self.env.step(pred_action.reshape(-1).detach().cpu().numpy())
                 total_reward += reward
+            if store_video:
+                video_filename = f"rollout_{goal_idx}.mp4"
+                video_filepath = os.path.join(video_path, video_filename)
+                # Save the frames as a video using imageio
+                imageio.mimsave(video_filepath, frames, fps=30)
 
         log.info(f"Total reward: {total_reward}")
         
         self.env.close()
-        if store_video:
-            video_filename = f"rollout_{goal_idx}.mp4"
-            video_filepath = os.path.join(video_path, video_filename)
-            # Save the frames as a video using imageio
-            imageio.mimsave(video_filepath, frames, fps=30)
         return_dict = self.compute_performance(rewards, results, log_wandb, 'multigoal')
         return return_dict
     

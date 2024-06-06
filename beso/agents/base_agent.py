@@ -122,12 +122,15 @@ class BaseAgent(abc.ABC):
         """
         if predict:
             state, goal = self.input_encoder(batch)
+            state = state.to(self.device).float()
+            goal = goal.to(self.device).float()
             state = self.scaler.scale_input(state)
             goal = self.scaler.scale_input(goal)
             if goal.shape[-1] == 10:
                 goal[..., [2, 5, 6, 7, 8, 9]] = 0
             if self.target_modality in batch:
                 action = batch[self.target_modality]
+                action = action.to(self.device).float()
                 action = self.scaler.scale_output(action)                
                 return state, action, goal
             elif 'goal_task_name' in batch:
@@ -137,13 +140,16 @@ class BaseAgent(abc.ABC):
                 return state, goal, None
                 
         else:
-            state, goal = self.input_encoder(batch)  
+            state, goal = self.input_encoder(batch) 
+            state = state.to(self.device).float()
+            goal = goal.to(self.device).float()
             state = self.scaler.scale_input(state)
             goal = self.scaler.scale_input(goal)
             if goal.shape[-1] == 10:
                     goal[..., [2, 5, 6, 7, 8, 9]] = 0
             if self.target_modality in batch:
                 action = batch[self.target_modality]
+                action = action.to(self.device).float()
                 action = self.scaler.scale_output(action)
                 return state, action, goal
             else:

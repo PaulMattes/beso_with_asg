@@ -159,11 +159,12 @@ class TrajectorySlicerDataset(TrajectoryDataset):
     def __getitem__(self, idx):
         data_batch = {}
         i, start, end = self.slices[idx]
+        datapoint = self.dataset[i]
         values = [
-            x[start:end] for x in self.dataset[i]
+            x[start:end] for x in datapoint
         ]  # [observations, actions, mask]
-        data_batch['observation'] = self.dataset[i][0][start:end] 
-        data_batch['action'] = self.dataset[i][1][start:end]
+        data_batch['observation'] = datapoint[0][start:end] 
+        data_batch['action'] = datapoint[1][start:end]
         
         if self.future_conditional:
             valid_start_range = (
@@ -172,13 +173,13 @@ class TrajectorySlicerDataset(TrajectoryDataset):
             )
             if valid_start_range[0] < valid_start_range[1]:
                 if self.only_sample_tail:
-                    future_obs = self.dataset[i][0][-self.future_seq_len :]
+                    future_obs = datapoint[0][-self.future_seq_len :]
                 elif self.only_sample_seq_end:
-                    future_obs = self.dataset[i][0][end : (end + self.future_seq_len)]
+                    future_obs = datapoint[0][end : (end + self.future_seq_len)]
                 else:
                     start = np.random.randint(*valid_start_range)
                     end = start + self.future_seq_len
-                    future_obs = self.dataset[i][0][start:end]
+                    future_obs = datapoint[0][start:end]
             else:
                 # zeros placeholder T x obs_dim
                 _, obs_dim = values[0].shape

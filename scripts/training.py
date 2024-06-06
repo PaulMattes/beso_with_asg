@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
         project=cfg.wandb.project, 
         entity=cfg.wandb.entity,
         group=cfg.group,
-        mode="disabled",
+        #mode="disabled",
         config=wandb.config
     )
 
@@ -49,6 +49,8 @@ def main(cfg: DictConfig) -> None:
         workspace_manager.data_loader['test']
     )
 
+    vid_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
+
     # after training, test the agent
     if isinstance(agent, BesoAgent):
         if cfg.cond_mask_prob > 0:
@@ -60,6 +62,7 @@ def main(cfg: DictConfig) -> None:
                 cfg.evaluate_sequential,
                 log_wandb=True,
                 store_video = True,
+                video_path = vid_path
                 )
         else:
             result_dict = workspace_manager.test_agent(
@@ -68,6 +71,7 @@ def main(cfg: DictConfig) -> None:
                 cfg.evaluate_sequential,
                 log_wandb=True,
                 store_video = True,
+                video_path = vid_path
                 )
     else:
         result_dict = workspace_manager.test_agent(
@@ -76,6 +80,7 @@ def main(cfg: DictConfig) -> None:
             cfg.evaluate_sequential,
             log_wandb=True,
             store_video = True,
+            video_path = vid_path
             )
     log.info("done")
     wandb.finish()
