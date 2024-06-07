@@ -30,7 +30,7 @@ try:
     register(
         id="kitchen-all-v0",
         entry_point="beso.envs.franka_kitchen.v0:KitchenAllV0",
-        max_episode_steps=280,
+        max_episode_steps=500,
         reward_threshold=1.0,
     )
 

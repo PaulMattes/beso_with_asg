@@ -151,20 +151,10 @@ class BesoAgent(BaseAgent):
             for batch in tqdm(train_loader):
                 batch_loss = self.train_step(batch)
                 batch_losses.append(batch_loss)
-                self.steps += 1
-                if self.steps % self.eval_every_n_steps == 0:
-                    self.lr_scheduler.step()
                 wandb.log(
                 {
-                    "training/loss": batch_loss,
-                    "training/test_loss": avrg_test_mse
-                }
-            )
-            wandb.log(
-                {
-                    'training/epoch_loss': np.mean(batch_losses),
-                    'training/epoch_test_loss': avrg_test_mse,
-                    'training/epoch': epoch,
+                    "loss": batch_loss,
+                    "test_loss": avrg_test_mse
                 }
             )
             log.info("Epoch {}: Mean test mse is {}".format(epoch, avrg_test_mse))

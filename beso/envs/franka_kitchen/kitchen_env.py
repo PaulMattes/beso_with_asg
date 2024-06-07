@@ -42,9 +42,9 @@ class KitchenWrapper(gym.Wrapper):
         self.visual_input = visual_input
         self.resnet18 = resnet
         self.transform = transforms.Compose([transforms.ToTensor(),
-                                        transforms.Resize((128,128)),
-                                        #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
-                                        transforms.Grayscale()
+                                        transforms.Resize((224,224)),
+                                        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
+                                        #transforms.Grayscale()
                                     ])
 
     def reset(self, *args, **kwargs):
@@ -65,7 +65,7 @@ class KitchenWrapper(gym.Wrapper):
     
     def preprocess_img(self, img):
         tensor_img = self.transform(img.copy())
-        tensor_img = einops.rearrange(tensor_img, "bs w h -> bs (w h)")
+        tensor_img = einops.rearrange(tensor_img, "(bs c) w h -> bs (c w h)", bs=1)
         #with torch.no_grad():
             #epi_img_tensor = torch.squeeze(self.resnet18.embed(tensor_img.cuda()), 0)
         return tensor_img

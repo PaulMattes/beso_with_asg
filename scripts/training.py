@@ -33,7 +33,7 @@ def main(cfg: DictConfig) -> None:
         project=cfg.wandb.project, 
         entity=cfg.wandb.entity,
         group=cfg.group,
-        #mode="disabled",
+        mode="disabled",
         config=wandb.config
     )
 
@@ -44,10 +44,13 @@ def main(cfg: DictConfig) -> None:
     agent.get_scaler(workspace_manager.scaler)
     agent.set_bounds(workspace_manager.scaler)
 
-    agent.train_agent(
-        workspace_manager.data_loader['train'],
-        workspace_manager.data_loader['test']
-    )
+    # agent.train_agent(
+    #     workspace_manager.data_loader['train'],
+    #     workspace_manager.data_loader['test']
+    # )
+    
+    path = "/home/paul/Desktop/Repositories/beso_with_asg/logs/franka_kitchen/runs/2024-06-07/11-17-20/"
+    agent.load_pretrained_model(path)
 
     vid_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 

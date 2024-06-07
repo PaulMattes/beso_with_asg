@@ -14,24 +14,29 @@ path = "/home/paul/Desktop/datasets/image_relay_kitchen/"
 data_path = "/home/paul/Desktop/datasets/image_relay_kitchen/images/"
 dataset_path = "/home/paul/Desktop/datasets/image_relay_kitchen/temp/"
                      
-masks = np.load(path + "existence_mask.npy")
-masks = einops.rearrange(masks, "b t ... -> t b ...")
+obs = np.load(path + "all_observations.npy")
+obs = einops.rearrange(obs, "b t ... -> t b ...")
 
-transform = transforms.Compose([transforms.Resize((224,224)),
-                                transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
-                                #transforms.Grayscale()
-                            ])
+print("debug")
 
-for i in tqdm(range(52,566)):
-    obs = torch.zeros(409, 224*224*3)
-    feasible_step = int(np.sum(masks[i]))
-    for j in tqdm(range(feasible_step)):
-        episode_name = data_path + "demonstration_" + str(i) + "_step_" + str(j) + ".jpg"
-        img = Image.open(episode_name)
-        img_tensor = transform(img)
-        obs[j] = torch.flatten(img_tensor)
-    torch.save(obs, dataset_path + "img_tensor_demo_{}.pth".format(i))        
+# transform = transforms.Compose([transforms.Resize((224,224)),
+#                                 transforms.ToTensor(),
+#                                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
+#                                 #transforms.Grayscale()
+#                             ])
+
+# for i in tqdm(range(0,1)):
+#     #obs = torch.zeros(409, 224*224*3)
+#     obs = np.zeros((409, 224*224*3))
+#     feasible_step = int(np.sum(masks[i]))
+#     for j in tqdm(range(feasible_step)):
+#         episode_name = data_path + "demonstration_" + str(i) + "_step_" + str(j) + ".jpg"
+#         img = Image.open(episode_name)
+#         img_tensor = transform(img)
+#         #obs[j] = torch.flatten(img_tensor)
+#         obs[j] = torch.flatten(img_tensor).numpy()
+#     #torch.save(obs, dataset_path + "img_tensor_demo_{}.pth".format(i))
+#     np.save(dataset_path + "img_tensor_demo_{}".format(i), obs)
         
 # #relay_traj = RelayKitchenTrajectoryDataset(data_path, onehot_goals=True)
 

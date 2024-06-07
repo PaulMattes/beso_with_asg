@@ -22,6 +22,7 @@ wandb:
 
 device: 'cuda'
 seed: 42
+store_vid: True
 scale_data: False
 future_seq_length: 1
 window_size: 2
@@ -38,8 +39,8 @@ goal_dim: 30
 hidden_dim: 512 
 use_spectral_norm: false
 num_hidden_layers: 8
-train_method: 'steps' # steps, epochs
-max_train_steps: 20000
+train_method: 'epochs' # steps, epochs
+max_train_steps: 40000
 max_epochs: 10
 eval_every_n_steps: 1000
 residual_style: True

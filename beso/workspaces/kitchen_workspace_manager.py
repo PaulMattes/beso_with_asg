@@ -158,14 +158,16 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             shuffle=True,
             num_workers=self.num_workers,
             pin_memory=True,
+            #prefetch_factor=2,
         )
 
         test_dataloader = torch.utils.data.DataLoader(
             self.test_set,
             batch_size=self.test_batch_size,
             shuffle=False,
-            num_workers=0,
+            num_workers=4,
             pin_memory=True,
+            #prefetch_factor=2,
         )
         return {
             "train": train_dataloader,
