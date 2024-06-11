@@ -1,0 +1,29 @@
+_target_: beso.agents.diffusion_agents.k_diffusion.score_wrappers.GCDenoiser
+_recursive_: false
+
+sigma_data: ${sigma_data}
+
+inner_model:
+  _target_: beso.agents.diffusion_agents.k_diffusion.seq_score_gpt.StepsDiffusionGPT
+  obs_dim: ${obs_dim}
+  action_dim: ${action_dim}
+  goal_dim: ${goal_dim}
+  goal_conditioned: ${goal_conditioning}
+  embed_dim: ${hidden_dim}
+  n_layers: ${num_hidden_layers}
+  goal_seq_len: ${future_seq_length}
+  obs_seq_len: 1
+  action_seq_len: ${window_size}
+  sigma_vocab_size: ${n_timesteps}
+  embed_pdrob: 0
+  goal_drop: ${cond_mask_prob}
+  attn_pdrop: ${attn_pdrop} # 0.3
+  resid_pdrop: ${resid_pdrop} #.3
+  
+  # Architecture details
+  n_heads: ${n_heads}
+  device: ${device}
+  linear_output: True
+  # use_rel_pos_emb: True
+  use_abs_pos_embed: True  
+  use_moe_model: True

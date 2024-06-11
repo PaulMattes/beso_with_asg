@@ -33,8 +33,7 @@ class RelayKitchenTrajectoryDataset(TensorDataset, TrajectoryDataset):
         )
         self.masks = masks
         tensors = [observations, actions, masks]
-        if onehot_goals:
-            tensors.append(goals)
+        tensors.append(goals)
         tensors = [t.to(device).float() for t in tensors]
         TensorDataset.__init__(self, *tensors)
         self.actions = self.tensors[1]
@@ -316,44 +315,3 @@ class RelayKitchenVisionTrajectoryDatasetImages(TensorDataset, TrajectoryDataset
     
     def __len__(self):
         return self.tensors[0].shape[0]
-
-class _ThreadedIterator(threading.Thread):
-    """
-    Prefetch the next queue_length items from iterator in a background thread.
-
-    Example:
-    >> for i in bg_iterator(range(10)):
-    >>     print(i)
-    """
-
-    class _End:
-        pass
-
-    def __init__(self, generator: Iterable, maxsize: int) -> None:
-        threading.Thread.__init__(self)
-        self.queue: Queue = Queue(maxsize)
-        self.generator = generator
-        self.daemon = True
-        self.start()
-
-    def run(self) -> None:
-        for item in self.generator:
-            self.queue.put(item)
-        self.queue.put(self._End)
-
-    def __iter__(self) -> Any:
-        return self
-
-    def __next__(self) -> Any:
-        next_item = self.queue.get()
-        if next_item == self._End:
-            raise StopIteration
-        return next_item
-
-    # Required for Python 2.7 compatibility
-    def next(self) -> Any:
-        return self.__next__()
-
-
-def bg_iterator(iterable: Iterable, maxsize: int) -> Any:
-    return _ThreadedIterator(iterable, maxsize=maxsize)

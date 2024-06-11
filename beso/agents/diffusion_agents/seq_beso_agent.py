@@ -33,7 +33,7 @@ class BesoAgent(BaseAgent):
             input_encoder: DictConfig,
             optimization: DictConfig,
             device: str,
-            obs_modalities: str,
+            obs_modalities: list,
             goal_modalities: list,
             target_modality: str,
             max_train_steps: int,
@@ -56,13 +56,14 @@ class BesoAgent(BaseAgent):
             decay: float,
             update_ema_every_n_steps: int,
             window_size: int,
+            obs_size: int,
+            action_seq_size: int,
             goal_window_size: int,
             use_kde: bool=False,
+            que_actions: bool = False,
             patience: int=10,
-            encoder_name: str="ResNet18",
-            obs_dim: int = 512,
     ):
-        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs, encoder_name, obs_dim)
+        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs)
 
         self.ema_helper = ExponentialMovingAverage(self.model.get_params(), decay, self.device)
         self.use_ema = use_ema
@@ -96,15 +97,22 @@ class BesoAgent(BaseAgent):
         # bool if the model should only output the last action or all actions in a sequence
         self.pred_last_action_only = pred_last_action_only
         # set up the rolling window contexts
-        self.obs_context = deque(maxlen=self.window_size)
+        self.action_seq_size = action_seq_size
+        self.obs_size = obs_size
+        self.window_size = window_size
+        self.obs_context = deque(maxlen=self.obs_size)
         self.goal_context = deque(maxlen=self.goal_window_size)
         # if we use DiffusionGPT we need an action context and use deques to store the actions
-        self.action_context = deque(maxlen=self.window_size-1)
-        self.que_actions = True
+        self.action_context = deque(maxlen=self.action_seq_size)
+        self.que_actions = que_actions
+        self.pred_counter = 0
+        self.action_counter = self.action_seq_size
         # use kernel density estimator if true
         self.use_kde = use_kde
-        self.noise_scheduler = 'exponential'
+        self.noise_scheduler = 'linear'
+        assert self.window_size == self.action_seq_size + self.obs_size - 1, "window_size does not match the expected value"
         
+
     def get_scaler(self, scaler: Scaler):
         """
         Define the scaler from the Workspace class used to scale state and output data if necessary
@@ -128,6 +136,48 @@ class BesoAgent(BaseAgent):
             self.train_agent_on_steps(train_loader, test_loader)
         else:
             raise ValueError('Either epochs or n_steps must be specified!')
+    
+    def process_batch(self, batch: dict, predict: bool = True):
+        """
+        Processes a batch of data and returns the state, action and goal
+        """
+        if predict:
+            state, goal = self.input_encoder(batch)
+            # next reduce the state window 
+            if state.shape[1] != self.obs_size:
+                if len(state.shape) == 3:
+                    state = state[:, :self.obs_size, :]
+            state = self.scaler.scale_input(state)
+            goal = self.scaler.scale_input(goal)
+            if goal.shape[-1] == 10:
+                goal[..., [2, 5, 6, 7, 8, 9]] = 0
+            if self.target_modality in batch:
+                action = batch[self.target_modality]
+                action = self.scaler.scale_output(action)                
+                return state, action, goal
+            elif 'goal_task_name' in batch:
+                goal_task_name = batch['goal_task_name']
+                return state, goal, goal_task_name
+            else:
+                return state, goal, None
+                
+        else:
+            state, goal = self.input_encoder(batch)  
+            if state.shape[1] != self.obs_size:
+                state = state[:, :self.obs_size, :]
+            state = self.scaler.scale_input(state)
+            goal = self.scaler.scale_input(goal)
+            if goal.shape[-1] == 10:
+                    goal[..., [2, 5, 6, 7, 8, 9]] = 0
+            if self.target_modality in batch:
+                action = batch[self.target_modality]
+                # get the correct action sequence
+                if action.shape[1] != self.action_seq_size:
+                    action = action[:, self.window_size:]
+                action = self.scaler.scale_output(action)
+                return state, action, goal
+            else:
+                return state, goal
     
     def train_agent_on_epochs(self, train_loader, test_loader, epochs):
         """
@@ -164,7 +214,6 @@ class BesoAgent(BaseAgent):
             )
             log.info("Epoch {}: Mean train batch loss mse is {}".format(epoch, average_train_loss))
             log.info("Epoch {}: Mean test mse is {}".format(epoch, avrg_test_mse))
-            self.store_model_weights(self.working_dir)
         self.store_model_weights(self.working_dir)
         log.info("Training done!")
 
@@ -177,7 +226,7 @@ class BesoAgent(BaseAgent):
             # run a test batch every n steps
             if not self.steps % self.eval_every_n_steps:
                 test_mse = []
-                for batch in tqdm(test_loader):
+                for batch in test_loader:
                     mean_mse = self.evaluate(batch)
                     test_mse.append(mean_mse)
                 avrg_test_mse = sum(test_mse) / len(test_mse)
@@ -217,7 +266,6 @@ class BesoAgent(BaseAgent):
         Raises:
             None
         """
-        self.input_encoder.train()
         # scale data if necessarry, otherwise the scaler will return unchanged values
         state, action, goal = self.process_batch(batch, predict=False)
         
@@ -256,7 +304,6 @@ class BesoAgent(BaseAgent):
         """
         total_mse = 0
         # scale data if necessary, otherwise the scaler will return unchanged values
-        self.input_encoder.eval()
         state, action, goal = self.process_batch(batch, predict=True)
         # use the EMA model variant
         if self.use_ema:
@@ -296,7 +343,7 @@ class BesoAgent(BaseAgent):
         new_sampler_type=None, 
         get_mean=None, 
         new_sampling_steps=None,
-        extra_args=None, 
+        extra_args={}, 
         noise_scheduler=None
     ) -> torch.Tensor:
         """
@@ -314,75 +361,62 @@ class BesoAgent(BaseAgent):
         Raises:
             None
         """
-        noise_scheduler = self.noise_scheduler if noise_scheduler is None else noise_scheduler
-        self.input_encoder.eval()
-        state, goal, _ = self.process_batch(batch, predict=True)
-        if len(state.shape) == 2  and self.window_size > 1:
-            self.obs_context.append(state)
-            input_state = torch.stack(tuple(self.obs_context), dim=1)
-        else:
-            input_state = state
-        if len(goal.shape) == 2 and self.window_size > 1:
-            goal = einops.rearrange(goal, 'b d -> 1 b d')
-            
-        # change sampler type and step size if requested otherwise use self. parameters
-        if new_sampler_type is not None:
-            sampler_type = new_sampler_type
-        else:
-            sampler_type = self.sampler_type
-        # same with the number of sampling steps 
-        if new_sampling_steps is not None:
-            n_sampling_steps = new_sampling_steps
-        else:
-            n_sampling_steps = self.num_sampling_steps
-
-            
-        if self.use_ema:
-            self.ema_helper.store(self.model.parameters())
-            self.ema_helper.copy_to(self.model.parameters())
-        self.model.eval()
-
-        # get the sigma distribution for the desired sampling method
-        sigmas = self.get_noise_schedule(n_sampling_steps, noise_scheduler)
-        
-        # adept for time sequence if chosen
-        if self.window_size > 1:
-            # depending if we use a single sample or the mean over n samples
-            if get_mean is not None:
-                x = torch.randn((len(input_state)*get_mean, 1, self.scaler.y_bounds.shape[1]), device=self.device) * self.sigma_max
+        if self.action_counter == self.action_seq_size:
+            self.action_counter = 0
+            noise_scheduler = self.noise_scheduler if noise_scheduler is None else noise_scheduler
+            state, goal, _ = self.process_batch(batch, predict=True)
+            if len(state.shape) == 2  and self.window_size > 1:
+                self.obs_context.append(state)
+                input_state = torch.stack(tuple(self.obs_context), dim=1)
             else:
-                x = torch.randn((len(input_state), 1, self.scaler.y_bounds.shape[1]), device=self.device) * self.sigma_max
-                # check if we need to get thew hole action context for the DiffusionGPT model variant
+                input_state = state
+            if len(goal.shape) == 2 and self.window_size > 1:
+                goal = einops.rearrange(goal, 'b d -> 1 b d')
                 
-                if len(self.action_context) > 0:  
-                    previous_a = torch.cat(tuple(self.action_context), dim=1)
-                    x = torch.cat([previous_a, x], dim=1)
-        else:
-            if get_mean is not None:
-                x = torch.randn((len(input_state)*get_mean, self.scaler.y_bounds.shape[1]), device=self.device) * self.sigma_max
-        
+            # change sampler type and step size if requested otherwise use self. parameters
+            if new_sampler_type is not None:
+                sampler_type = new_sampler_type
             else:
-                x = torch.randn((len(input_state), 1, self.scaler.y_bounds.shape[1]), device=self.device) * self.sigma_max
-        
-        x_0 = self.sample_loop(sigmas, x, input_state, goal, sampler_type, extra_args)
-        
-        # only get the last action if we use a sequence model 
-        if x_0.size()[1] > 1 and len( x_0.size()) ==3:
-            x_0 = x_0[:, -1, :]
-        # if we predict a sequence we only want the last predicted action of our transformer model
-        
-        # scale the final output
-        x_0 = self.scaler.clip_action(x_0)
+                sampler_type = self.sampler_type
+            # same with the number of sampling steps 
+            if new_sampling_steps is not None:
+                n_sampling_steps = new_sampling_steps
+            else:
+                n_sampling_steps = self.num_sampling_steps
 
-        if self.use_ema:
-            self.ema_helper.restore(self.model.parameters())
-        # if we have an DiffusionGPT we also que the actions
-        model_pred = self.scaler.inverse_scale_output(x_0)
-        # if self.que_actions or self.pred_last_action_only:
-        if len(model_pred.shape) == 2:
-            x_0 = einops.rearrange(x_0, 'b d -> b 1 d')
-        self.action_context.append(x_0)
-        return model_pred
+                
+            if self.use_ema:
+                self.ema_helper.store(self.model.parameters())
+                self.ema_helper.copy_to(self.model.parameters())
+            self.model.eval()
+
+            # get the sigma distribution for the desired sampling method
+            sigmas = self.get_noise_schedule(n_sampling_steps, noise_scheduler)
+            
+            # adept for time sequence if chosen
+            x = torch.randn((len(input_state), self.action_seq_size, self.scaler.y_bounds.shape[1]), device=self.device) * self.sigma_max
+            
+            x_0 = self.sample_loop(sigmas, x, input_state, goal, sampler_type, extra_args)
+            
+            # only get the first action if we use a sequence model 
+            # if we predict a sequence we only want the last predicted action of our transformer model
+            
+            # scale the final output
+            x_0 = self.scaler.clip_action(x_0)
+
+            if self.use_ema:
+                self.ema_helper.restore(self.model.parameters())
+            # if we have an DiffusionGPT we also que the actions
+            model_pred = self.scaler.inverse_scale_output(x_0)
+            self.curr_action_seq = model_pred
+
+
+            self.action_context.append(x_0)
+
+        next_action = self.curr_action_seq[:, self.action_counter].unsqueeze(1)
+        self.action_counter += 1
+
+        return next_action
     
     def sample_loop(
         self, 

@@ -6,7 +6,7 @@ import torch
 from omegaconf import DictConfig
 import hydra
 
-from beso.agents.input_encoders.vision_encoder import ResNet18
+from beso.agents.input_encoders.vision_encoder import ResNet
 from beso.networks.scaler.scaler_class import Scaler
 
 # A logger for this file
@@ -27,8 +27,8 @@ class BaseAgent(abc.ABC):
             max_train_steps: int,
             eval_every_n_steps: int,
             max_epochs: int,
-            window_size: int,
-            goal_window_size: int,
+            encoder_name: str,
+            obs_dim: int,
     ):
         self.scaler = None
         self.model = hydra.utils.instantiate(model).to(device)
@@ -41,12 +41,10 @@ class BaseAgent(abc.ABC):
         if obs_modalities == "state":
             self.input_encoder = hydra.utils.instantiate(input_encoder)
         elif obs_modalities == "image":
-            self.input_encoder = ResNet18(device, window_size, goal_window_size)
+            self.input_encoder = ResNet(encoder_name, obs_dim, device)
         self.device = device
         self.steps = 0
         self.epochs = max_epochs
-        self.window_size = window_size
-        self.goal_window_size = goal_window_size
         self.max_train_steps = int(max_train_steps)
         self.eval_every_n_steps = eval_every_n_steps
         self.working_dir = os.getcwd()
