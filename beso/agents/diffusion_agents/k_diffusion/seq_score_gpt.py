@@ -223,7 +223,7 @@ class StepsDiffusionGPT(nn.Module):
         # get the sigma embedding
         sigmas = sigma.log() / 4
         sigmas = einops.rearrange(sigmas, 'b -> b 1')
-        emb_t = self.sigma_emb(sigmas)
+        emb_t = self.sigma_emb(sigmas.to(torch.float32))
         if len(states.shape) == 3:
             emb_t = einops.rearrange(emb_t, 'b d -> b 1 d')
         
@@ -251,7 +251,7 @@ class StepsDiffusionGPT(nn.Module):
         # embed them into linear representations for the transformer
         state_embed = self.tok_emb(states)
         goal_embed = self.tok_emb(goals)
-        action_embed = self.action_emb(actions)
+        action_embed = self.action_emb(actions.to(torch.float32))
         
         # if not uncond:
         if self.goal_conditioned:

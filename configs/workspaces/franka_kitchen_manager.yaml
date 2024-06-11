@@ -17,9 +17,9 @@ dataset_fn:
 
 env_name: 'kitchen-all-v0'
 seed: ${seed}
-train_batch_size: 16 #16
-test_batch_size:  16 #16
-num_workers: 4
+train_batch_size: 64 #16 1024
+test_batch_size:  64 #16 1024
+num_workers: 0
 eval_n_times: 25
 eval_n_steps: 280
 device: ${device}

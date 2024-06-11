@@ -2,12 +2,13 @@ defaults:
   - agents: beso_kitchen #seq_beso_agent #beso_kitchen
   - workspaces: franka_kitchen_manager
 
-#log_dir: logs/franka_kitchen/
-log_dir: /home/temp_store/p_mattesc/franka_kitchen/
+log_dir: logs/franka_kitchen/
+#log_dir: /home/temp_store/p_mattesc/franka_kitchen/
 plot_dir: plots/franka_kitchen/
 plot_name: ${now:%Y-%m-%d}.png
 #data_path: /home/paul/Desktop/datasets/image_relay_kitchen
-data_path: /home/temp_store/p_mattesc/dataset/image_relay_kitchen
+#data_path: /home/temp_store/p_mattesc/dataset/image_relay_kitchen
+data_path: /home/mattes/datasets/image_relay_kitchen
 
 hydra:
   run:

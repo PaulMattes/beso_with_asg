@@ -166,9 +166,9 @@ class RelayKitchenVisionTrajectoryDatasetSingleLoading(TensorDataset, Trajectory
     def __init__(self, data_directory_path, device="cuda", onehot_goals=False):
         self.data_directory_path = data_directory_path
         self.device = device
-        #self.cache = {}
-        self.img_tensor = None
-        self.idx = -1
+        self.cache = {}
+        # self.img_tensor = None
+        # self.idx = -1
         
         data_directory = Path(data_directory_path)
         
@@ -226,13 +226,16 @@ class RelayKitchenVisionTrajectoryDatasetSingleLoading(TensorDataset, Trajectory
         if worker_info is not None:
             pass
             #print("worker {} loading index {}".format(worker_info.id, idx))
-        if idx == self.idx:
-            img_tensor = self.img_tensor
+        # if idx == self.idx:
+        #     img_tensor = self.img_tensor
+        if idx in self.cache:
+            img_tensor = self.cache[idx]
         else:
             episode_name = self.data_directory_path + "/pre_processed_images_normal/img_tensor_demo_" + str(idx) + ".pth"
             img_tensor = torch.load(episode_name)
-            self.img_tensor = img_tensor
-            self.idx = idx
+            # self.img_tensor = img_tensor
+            # self.idx = idx
+            self.cache[idx] = img_tensor
         item = [img_tensor] + [x[idx, :T] for x in self.tensors]
         #item = [t.to(self.device).float() for t in item]
         return item

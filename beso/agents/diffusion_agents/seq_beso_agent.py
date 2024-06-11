@@ -62,8 +62,10 @@ class BesoAgent(BaseAgent):
             use_kde: bool=False,
             que_actions: bool = False,
             patience: int=10,
+            encoder_name: str="ResNet18",
+            obs_dim: int=512,
     ):
-        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs)
+        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs, encoder_name, obs_dim)
 
         self.ema_helper = ExponentialMovingAverage(self.model.get_params(), decay, self.device)
         self.use_ema = use_ema
