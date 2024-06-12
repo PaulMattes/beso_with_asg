@@ -22,6 +22,9 @@ OmegaConf.register_new_resolver(
 @hydra.main(config_path="../configs", config_name="franka_kitchen_main_config.yaml")
 def main(cfg: DictConfig) -> None:
     
+    # path = "/home/paul/Desktop/Repositories/beso_with_asg/logs/franka_kitchen/runs/2024-06-11/test_run/"
+    # cfg = OmegaConf.load(path + "/.hydra/config.yaml")
+    
     np.random.seed(cfg.seed)
     torch.manual_seed(cfg.seed)
     torch.backends.cudnn.benchmark = False
@@ -33,7 +36,7 @@ def main(cfg: DictConfig) -> None:
         project=cfg.wandb.project, 
         entity=cfg.wandb.entity,
         group=cfg.group,
-        mode="disabled",
+        #mode="disabled",
         config=wandb.config
     )
 
@@ -49,7 +52,6 @@ def main(cfg: DictConfig) -> None:
         workspace_manager.data_loader['test']
     )
     
-    # path = "/home/paul/Desktop/Repositories/beso_with_asg/logs/franka_kitchen/runs/2024-06-07/11-17-20/"
     # agent.load_pretrained_model(path)
 
     vid_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir

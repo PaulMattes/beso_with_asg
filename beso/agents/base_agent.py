@@ -108,8 +108,12 @@ class BaseAgent(abc.ABC):
         Method to load a pretrained model weights inside self.model
         """
         if sv_name is None:
+            if self.obs_modalities == "image":
+                self.input_encoder.load_state_dict(torch.load(os.path.join(weights_path, "input_encoder_state_dict.pth")))
             self.model.load_state_dict(torch.load(os.path.join(weights_path, "model_state_dict.pth")))
         else:
+            if self.obs_modalities == "image":
+                self.input_encoder.load_state_dict(torch.load(os.path.join(weights_path, "input_encoder_state_dict.pth")))
             self.model.load_state_dict(torch.load(os.path.join(weights_path, sv_name)))
         log.info('Loaded pre-trained model parameters')
     
@@ -173,6 +177,10 @@ class BaseAgent(abc.ABC):
         Store the model weights inside the store path as model_weights.pth
         """
         if sv_name is None:
+            if self.obs_modalities == "image":
+                torch.save(self.input_encoder.state_dict(), os.path.join(store_path, "input_encoder_state_dict.pth"))
             torch.save(self.model.state_dict(), os.path.join(store_path, "model_state_dict.pth"))
         else:
+            if self.obs_modalities == "image":
+                torch.save(self.input_encoder.state_dict(), os.path.join(store_path, "input_encoder_state_dict.pth"))
             torch.save(self.model.state_dict(), os.path.join(store_path, sv_name))

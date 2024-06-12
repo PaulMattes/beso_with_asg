@@ -28,7 +28,7 @@ seed: 42
 store_vid: True
 scale_data: False
 future_seq_length: 1 #1
-window_size: 2 #4
+window_size: 8 #4
 # either onehot or future
 goal_conditioning: false
 goal_conditional: 'future'
