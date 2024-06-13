@@ -36,11 +36,10 @@ logging.basicConfig(
 )
 
 class KitchenWrapper(gym.Wrapper):
-    def __init__(self, env, visual_input, resnet):
+    def __init__(self, env, visual_input):
         super(KitchenWrapper, self).__init__(env)
         self.env = env
         self.visual_input = visual_input
-        self.resnet18 = resnet
         self.transform = transforms.Compose([transforms.ToTensor(),
                                         transforms.Resize((224,224)),
                                         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])

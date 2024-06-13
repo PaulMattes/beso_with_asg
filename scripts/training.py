@@ -22,7 +22,7 @@ OmegaConf.register_new_resolver(
 @hydra.main(config_path="../configs", config_name="franka_kitchen_main_config.yaml")
 def main(cfg: DictConfig) -> None:
     
-    # path = "/home/paul/Desktop/Repositories/beso_with_asg/logs/franka_kitchen/runs/2024-06-11/test_run/"
+    # path = "/home/paul/Desktop/15-32-17"
     # cfg = OmegaConf.load(path + "/.hydra/config.yaml")
     
     np.random.seed(cfg.seed)
@@ -52,7 +52,7 @@ def main(cfg: DictConfig) -> None:
         workspace_manager.data_loader['test']
     )
     
-    # agent.load_pretrained_model(path)
+    #agent.load_pretrained_model(path)
 
     vid_path = hydra.core.hydra_config.HydraConfig.get().runtime.output_dir
 

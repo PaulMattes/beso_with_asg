@@ -63,6 +63,56 @@ class RelayKitchenTrajectoryDataset(TensorDataset, TrajectoryDataset):
         T = self.masks[idx].sum().int().item()
         return tuple(x[idx, :T] for x in self.tensors)
 
+class RelayKitchenVisionTrajectoryDatasetMLP(TensorDataset, TrajectoryDataset):
+    def __init__(self, data_directory_path, device="cpu", onehot_goals=False):
+        data_directory = Path(data_directory_path)
+        
+        path = data_directory_path + "/temp/"
+        observations = torch.zeros((566, 409, 512))
+        for idx, name in enumerate(os.listdir(path)):
+            episode_name = path + name
+            img_embedding = torch.load(episode_name)
+            img_embedding.requires_grad = False
+            observations[idx] = img_embedding
+        
+        actions = torch.from_numpy(np.load(data_directory / "actions_seq.npy"))
+        masks = torch.from_numpy(np.load(data_directory / "existence_mask.npy"))
+        goals = torch.load(data_directory / "onehot_goals.pth")
+        # The current values are in shape T x N x Dim, move to N x T x Dim
+        observations, actions, masks, goals = transpose_batch_timestep(
+            observations, actions, masks, goals
+        )
+        self.masks = masks
+        tensors = [observations, actions, masks]
+        tensors.append(goals)
+        tensors = [t.to(device).float() for t in tensors]
+        TensorDataset.__init__(self, *tensors)
+        self.actions = self.tensors[1]
+        self.observations = self.tensors[0]
+        self.onehot_goals = goals
+
+    def get_seq_length(self, idx):
+        return int(self.masks[idx].sum().item())
+
+    def get_all_actions(self):
+        result = []
+        # mask out invalid actions
+        for i in range(len(self.masks)):
+            T = int(self.masks[i].sum())
+            result.append(self.actions[i, :T, :])
+        return torch.cat(result, dim=0)
+
+    def get_all_observations(self):
+        result = []
+        # mask out invalid actions
+        for i in range(len(self.masks)):
+            T = int(self.masks[i].sum().item())
+            result.append(self.observations[i, :T, :])
+        return torch.cat(result, dim=0)
+
+    def __getitem__(self, idx):
+        T = self.masks[idx].sum().int().item()
+        return tuple(x[idx, :T] for x in self.tensors)
 
 def get_relay_kitchen_train_val(
     data_directory,
@@ -87,6 +137,8 @@ def get_relay_kitchen_train_val(
         #dataset = RelayKitchenVisionTrajectoryDataset(data_directory, onehot_goals=(goal_conditional == "onehot"))
         dataset = RelayKitchenVisionTrajectoryDatasetSingleLoading(data_directory, onehot_goals=(goal_conditional == "onehot"))
         #dataset = RelayKitchenVisionTrajectoryDatasetImages(data_directory, onehot_goals=(goal_conditional == "onehot"))
+    elif obs_modalities == "image_mlp":
+        dataset = RelayKitchenVisionTrajectoryDatasetMLP(data_directory, onehot_goals=(goal_conditional == "onehot"))
     
     return get_train_val_sliced(
         dataset,

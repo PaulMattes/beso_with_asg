@@ -6,7 +6,7 @@ import torch
 from omegaconf import DictConfig
 import hydra
 
-from beso.agents.input_encoders.vision_encoder import ResNet
+from beso.agents.input_encoders.vision_encoder import ResNet, ResNetMLP
 from beso.networks.scaler.scaler_class import Scaler
 
 # A logger for this file
@@ -42,6 +42,8 @@ class BaseAgent(abc.ABC):
             self.input_encoder = hydra.utils.instantiate(input_encoder)
         elif obs_modalities == "image":
             self.input_encoder = ResNet(encoder_name, obs_dim, device)
+        elif obs_modalities == "image_mlp":
+            self.input_encoder = ResNetMLP(encoder_name, obs_dim, device)
         self.device = device
         self.steps = 0
         self.epochs = max_epochs

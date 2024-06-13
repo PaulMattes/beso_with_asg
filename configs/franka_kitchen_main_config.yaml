@@ -28,7 +28,7 @@ seed: 42
 store_vid: True
 scale_data: False
 future_seq_length: 1 #1
-window_size: 8 #4
+window_size: 2 #4
 # either onehot or future
 goal_conditioning: false
 goal_conditional: 'future'
@@ -53,7 +53,7 @@ evaluate_multigoal: True
 evaluate_sequential: false
 
 #obs_modalities: ['observation']
-obs_modalities: 'image' # state, image
+obs_modalities: 'image' # state, image, image_mlp
 goal_modalities: ['goal_observation']
 target_modality: 'action'
 

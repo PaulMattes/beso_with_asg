@@ -217,7 +217,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             seq_results = self.test_agent_on_sequential_tasks(agent, log_wandb, new_sampler_type, n_inference_steps, get_mean, noise_scheduler, extra_args)
         return mg_results, seq_results
         
-
+    #@torch.no_grad()
     def test_agent_on_multigoal(
         self, 
         agent, 
@@ -254,7 +254,10 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         if self.obs_modalities == 'state':
             self.env = gym.make(self.env_name)
         elif self.obs_modalities == 'image':
-            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True, resnet=agent.input_encoder)
+            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True)
+        elif self.obs_modalities == "image_mlp":
+            agent.input_encoder.predict = True
+            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True)
         self.env.seed(self.seed)
         log.info('Starting trained model evaluation on the multimodal kitchen environment')
         rewards = []
