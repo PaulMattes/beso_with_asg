@@ -50,7 +50,7 @@ class ResNet(nn.Module):
     
 class ResNetMLP(nn.Module):
     def __init__(self, model_name, obs_dim, device) -> None:
-        super(ResNet, self).__init__()
+        super(ResNetMLP, self).__init__()
         if model_name == "ResNet18":
             self.model = models.resnet18(pretrained=True).to(device)
         elif model_name == "ResNet50":
@@ -59,7 +59,7 @@ class ResNetMLP(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
         
-        n_inputs = self.model.fc.in_features    
+        n_inputs = self.model.fc.in_features
         
         self.fc_layer = nn.Linear(n_inputs, obs_dim).to(device)
         
@@ -82,7 +82,7 @@ class ResNetMLP(nn.Module):
         else:
             x = self.single_forward(obs, obs.shape[1])
             with torch.no_grad():
-                y = self.single_forward(goal, goal.shape[1])
+                y = self.fc_layer(goal)
         
         return x, y
             

@@ -141,7 +141,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         Returns:
             dict: A dictionary containing the created train and test dataloaders.
         """
-        if self.obs_modalities == 'state':
+        if self.obs_modalities == 'state' or self.obs_modalities == 'image_mlp':
             self.scaler = Scaler(
                 self.train_set.dataset.dataset.get_all_observations(),
                 self.train_set.dataset.dataset.get_all_actions(),

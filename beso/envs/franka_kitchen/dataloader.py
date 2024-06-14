@@ -79,8 +79,8 @@ class RelayKitchenVisionTrajectoryDatasetMLP(TensorDataset, TrajectoryDataset):
         masks = torch.from_numpy(np.load(data_directory / "existence_mask.npy"))
         goals = torch.load(data_directory / "onehot_goals.pth")
         # The current values are in shape T x N x Dim, move to N x T x Dim
-        observations, actions, masks, goals = transpose_batch_timestep(
-            observations, actions, masks, goals
+        actions, masks, goals = transpose_batch_timestep(
+            actions, masks, goals
         )
         self.masks = masks
         tensors = [observations, actions, masks]

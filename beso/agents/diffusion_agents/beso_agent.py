@@ -456,7 +456,7 @@ class BesoAgent(BaseAgent):
         """
         Method to load a pretrained model weights inside self.model
         """
-        if self.obs_modalities == "image":
+        if self.obs_modalities != "state":
             self.input_encoder.load_state_dict(torch.load(os.path.join(weights_path, "input_encoder_state_dict.pth")))
         self.model.load_state_dict(torch.load(os.path.join(weights_path, "model_state_dict.pth")))
         self.ema_helper = ExponentialMovingAverage(self.model.get_params(), self.decay, self.device)
@@ -466,7 +466,7 @@ class BesoAgent(BaseAgent):
         """
         Store the model weights inside the store path as model_weights.pth
         """
-        if self.obs_modalities == "image":
+        if self.obs_modalities != "state":
             torch.save(self.input_encoder.state_dict(), os.path.join(store_path, "input_encoder_state_dict.pth"))
         if self.use_ema:
             self.ema_helper.store(self.model.parameters())

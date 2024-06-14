@@ -49,7 +49,7 @@ class KitchenWrapper(gym.Wrapper):
     def reset(self, *args, **kwargs):
         obs = self.env.reset(*args, **kwargs)
         if self.visual_input:
-            return_obs = self.render(mode="rgb_array")
+            return_obs = self.env.render(mode="rgb_array")
             return self.preprocess_img(return_obs)
         else:
             return obs
