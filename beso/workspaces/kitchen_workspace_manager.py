@@ -43,6 +43,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             train_fraction: float = 0.95,
             obs_modalities: str = 'state',
             goal_seq_len: int = 4,
+            embedding_type: str = "none"
     ):
         super().__int__(seed, device)
 
@@ -71,6 +72,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         self.success_rate_3 = 0
         self.success_rate_4 = 0
         self.success_rate_5 = 0
+        self.embedding_type = embedding_type
         # get goal function for evaluation       
         self.seq_goals_fn = get_goal_fn(relay_traj=self.relay_traj, goal_seq_len=goal_seq_len, goal_conditional=True, seed=seed, train_fraction=1)
         self.multi_goals_fn = get_goal_fn(relay_traj=self.relay_traj, goal_seq_len=goal_seq_len, goal_conditional=False, seed=seed, train_fraction=1)
@@ -165,7 +167,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
             self.test_set,
             batch_size=self.test_batch_size,
             shuffle=False,
-            num_workers=4,
+            num_workers=self.num_workers,
             pin_memory=True,
             #prefetch_factor=2,
         )
@@ -254,10 +256,13 @@ class FrankaKitchenManager(BaseWorkspaceManger):
         if self.obs_modalities == 'state':
             self.env = gym.make(self.env_name)
         elif self.obs_modalities == 'image':
-            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True)
+            if self.embedding_type == 'none':
+                self.env = KitchenWrapper(gym.make(self.env_name), input='image')
+            else:
+                self.env = KitchenWrapper(gym.make(self.env_name), input='image_graph')
         elif self.obs_modalities == "image_mlp":
             agent.input_encoder.predict = True
-            self.env = KitchenWrapper(gym.make(self.env_name), visual_input=True)
+            self.env = KitchenWrapper(gym.make(self.env_name), input='image')
         self.env.seed(self.seed)
         log.info('Starting trained model evaluation on the multimodal kitchen environment')
         rewards = []

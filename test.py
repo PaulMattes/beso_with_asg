@@ -176,98 +176,113 @@ obs = einops.rearrange(obs, "b t ... -> t b ...")
 masks = np.load(path + "existence_mask.npy")
 masks = einops.rearrange(masks, "b t ... -> t b ...")
 
-# object_names = [
-#         "bottom burner",
-#         "top burner",
-#         "light switch",
-#         "slide cabinet",
-#         "hinge cabinet",
-#         "microwave",
-#         "kettle",
-#     ]
-# affordance_names = [
-#     "turn on",
-#     "turn off",
-#     "open",
-#     "close",
-#     "pick up",
-#     "put down"
-# ]
-# goals = torch.load(path + "onehot_goals.pth")
-# goals = einops.rearrange(goals, "b t ... -> t b ...")
+object_names = [
+        "bottom burner",
+        "top burner",
+        "light switch",
+        "slide cabinet",
+        "hinge cabinet",
+        "microwave",
+        "kettle",
+    ]
+affordance_names = [
+    "turn on",
+    "turn off",
+    "open",
+    "close",
+    "pick up",
+    "put down"
+]
+goals = torch.load(path + "onehot_goals.pth")
+goals = einops.rearrange(goals, "b t ... -> t b ...")
 
-# Graph = create_graph()
+all_rows = []
+all_cols = []
+all_features = []
+all_weights = []
 
-# for i in range(goals.shape[0]):
-#     goal = torch.argmax(goals[i][0])
-#     rows = []
-#     cols = []
-#     features = []
-#     weights = []
-#     for j in range(goals.shape[1]):
-#         current_goal = torch.argmax(goals[i][j])
-#         if goal != current_goal and j != 0:
-#             update_graph(Graph, goal)
-#             goal = current_goal
-#             print("graph updated: ", j)
-#         r, c, f, w = convert_graph(Graph, ["Robot"] + object_names + affordance_names)
-#         rows.append(r)
-#         cols.append(c)
-#         features.append(f)
-#         weights.append(w)
-#     rows = torch.stack(rows)
-#     cols = torch.stack(cols)
-#     features = torch.stack(features)
-#     weights = torch.stack(weights)
-#     print("debug")
+for i in tqdm(range(goals.shape[0])):
+    Graph = create_graph()
+    goal = torch.argmax(goals[i][0])
+    rows = []
+    cols = []
+    features = []
+    weights = []
+    for j in range(goals.shape[1]):
+        current_goal = torch.argmax(goals[i][j])
+        if goal != current_goal and j != 0:
+            update_graph(Graph, goal)
+            goal = current_goal
+            #print("graph updated: ", j)
+        r, c, f, w = convert_graph(Graph, ["Robot"] + object_names + affordance_names)
+        rows.append(r)
+        cols.append(c)
+        features.append(f)
+        weights.append(w)
+    rows = torch.stack(rows)
+    cols = torch.stack(cols)
+    features = torch.stack(features)
+    weights = torch.stack(weights)
+    all_rows.append(rows)
+    all_cols.append(cols)
+    all_features.append(features)
+    all_weights.append(weights)
+all_rows = torch.stack(all_rows)
+all_cols = torch.stack(all_cols)
+all_features = torch.stack(all_features)
+all_weights = torch.stack(all_weights)
+torch.save(all_rows, dataset_path + "graph_row_tensor.pth")
+torch.save(all_cols, dataset_path + "graph_cols_tensor.pth")
+torch.save(all_features, dataset_path + "graph_feature_tensor.pth")
+torch.save(all_weights, dataset_path + "graph_weight_tensor.pth")
         
-# #plot_graph(Graph)
+#plot_graph(Graph)
 
-# print("debug")
+print("debug")
 
-class ownResNet(nn.Module):
-    def __init__(self):
-        super(ownResNet, self).__init__()
-        self.model = models.resnet18(pretrained=True).to('cuda')
+# class ownResNet(nn.Module):
+#     def __init__(self):
+#         super(ownResNet, self).__init__()
+#         self.model = models.resnet18(pretrained=True).to('cuda')
         
-    def forward(self, x):
-        x = self.model.conv1(x)
-        x = self.model.bn1(x)
-        x = self.model.relu(x)
-        x = self.model.maxpool(x)
+#     def forward(self, x):
+#         x = self.model.conv1(x)
+#         x = self.model.bn1(x)
+#         x = self.model.relu(x)
+#         x = self.model.maxpool(x)
 
-        x = self.model.layer1(x)
-        x = self.model.layer2(x)
-        x = self.model.layer3(x)
-        x = self.model.layer4(x)
+#         x = self.model.layer1(x)
+#         x = self.model.layer2(x)
+#         x = self.model.layer3(x)
+#         x = self.model.layer4(x)
 
-        x = self.model.avgpool(x)
-        x = torch.flatten(x, 1)
-        #x = self.model.fc(x)
+#         x = self.model.avgpool(x)
+#         x = torch.flatten(x, 1)
+#         #x = self.model.fc(x)
 
-        return x
+#         return x
 
-transform = transforms.Compose([transforms.Resize((224,224)),
-                                transforms.ToTensor(),
-                                transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
-                                #transforms.Grayscale()
-                            ])
+# transform = transforms.Compose([transforms.Resize((224,224)),
+#                                 transforms.ToTensor(),
+#                                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.255])
+#                                 #transforms.Grayscale()
+#                             ])
 
-model = ownResNet()
+# model = ownResNet()
 
-for i in tqdm(range(0,566)):
-    obs = torch.zeros(409, 512)
-    #obs = np.zeros((409, 512))
-    feasible_step = int(np.sum(masks[i]))
-    for j in tqdm(range(feasible_step)):
-        episode_name = data_path + "demonstration_" + str(i) + "_step_" + str(j) + ".jpg"
-        img = Image.open(episode_name)
-        img_tensor = transform(img)
-        with torch.no_grad():
-            embedded = model(torch.unsqueeze(img_tensor.to('cuda'), dim=0))
-        obs[j] = torch.flatten(embedded.cpu())
-    torch.save(obs, dataset_path + "img_tensor_demo_{}.pth".format(i))
-    #np.save(dataset_path + "img_tensor_demo_{}".format(i), obs)
+# for i in tqdm(range(0,566)):
+#     obs = torch.zeros(409, 512)
+#     #obs = np.zeros((409, 512))
+#     feasible_step = int(np.sum(masks[i]))
+#     for j in tqdm(range(feasible_step)):
+#         episode_name = data_path + "demonstration_" + str(i) + "_step_" + str(j) + ".jpg"
+#         img = Image.open(episode_name)
+#         img_tensor = transform(img)
+#         with torch.no_grad():
+#             embedded = model(torch.unsqueeze(img_tensor.to('cuda'), dim=0))
+#         obs[j] = torch.flatten(embedded.cpu())
+#     torch.save(obs, dataset_path + "img_tensor_demo_{}.pth".format(i))
+#     #np.save(dataset_path + "img_tensor_demo_{}".format(i), obs)
         
 # #relay_traj = RelayKitchenTrajectoryDataset(data_path, onehot_goals=True)
 

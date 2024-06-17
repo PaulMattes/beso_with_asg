@@ -85,7 +85,7 @@ def get_goal_fn(
             if goal_idx > 555:
                 goal_idx = goal_idx - 555
             logging.info(f"goal_idx: {train_idx[goal_idx]}")
-            obs, _, _, _ = relay_traj[train_idx[goal_idx]]  # seq_len x obs_dim
+            obs = relay_traj[train_idx[goal_idx]][0]  # seq_len x obs_dim
             obs = obs[-goal_seq_len:]
             return obs
     
@@ -101,7 +101,8 @@ def get_goal_fn(
             if goal_idx > 555:
                 goal_idx = goal_idx - 555
             logging.info(f"goal_idx: {train_idx[goal_idx]}")
-            obs, _, _, onehot_goals = relay_traj[train_idx[goal_idx]]  # seq_len x obs_dim
+            obs = relay_traj[train_idx[goal_idx]][0] # seq_len x obs_dim
+            onehot_goals = relay_traj[train_idx[goal_idx]][3]
 
             expected_mask = onehot_goals.max(0).values.bool().detach().cpu().numpy()
             order = onehot_goals.max(0).indices.detach().cpu().numpy()[expected_mask]

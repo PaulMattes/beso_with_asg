@@ -17,8 +17,8 @@ dataset_fn:
 
 env_name: 'kitchen-all-v0'
 seed: ${seed}
-train_batch_size: 4096 #16 1024
-test_batch_size:  4096 #16 1024
+train_batch_size: 512 #16 1024
+test_batch_size:  512 #16 1024
 num_workers: 0
 eval_n_times: 25
 eval_n_steps: 280
@@ -28,4 +28,5 @@ train_fraction: 0.95
 render: ${render}
 obs_modalities: ${obs_modalities}
 goal_seq_len: ${future_seq_length}
+embedding_type: ${embedding_type}
 

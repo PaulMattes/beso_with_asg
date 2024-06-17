@@ -27,4 +27,5 @@ inner_model:
   n_heads: ${n_heads}
   device: ${device}
   linear_output: True
+  embedding_type: ${embedding_type}
   

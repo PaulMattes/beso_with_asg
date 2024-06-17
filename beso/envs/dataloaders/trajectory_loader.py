@@ -166,6 +166,11 @@ class TrajectorySlicerDataset(TrajectoryDataset):
         data_batch['observation'] = datapoint[0][start:end] 
         data_batch['action'] = datapoint[1][start:end]
         
+        data_batch['cols'] = datapoint[4][start:end]
+        data_batch['rows'] = datapoint[5][start:end]
+        data_batch['features'] = datapoint[6][start:end]
+        data_batch['weights'] = datapoint[7][start:end]
+        
         if self.future_conditional:
             valid_start_range = (
                 end + self.min_future_sep,

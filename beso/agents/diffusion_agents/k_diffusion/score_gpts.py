@@ -136,12 +136,16 @@ class DiffusionGPT(nn.Module):
         time_embedding_fn: DictConfig,
         goal_drop: float = 0,
         linear_output = False,
+        embedding_type: str = 'none',
     ):
         super().__init__()
         self.device = device
         self.goal_conditioned = goal_conditioned
         if not goal_conditioned:
             goal_seq_len = 0
+        
+        if embedding_type == 'concat':
+            state_dim = 2*state_dim
         # input embedding stem
         # first we need to define the maximum block size
         # it consists of the goal sequence length plus 1 for the sigma embedding and 2 the obs seq len

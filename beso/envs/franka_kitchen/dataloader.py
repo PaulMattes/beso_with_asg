@@ -219,26 +219,13 @@ class RelayKitchenVisionTrajectoryDatasetSingleLoading(TensorDataset, Trajectory
         self.data_directory_path = data_directory_path
         self.device = device
         self.cache = {}
-        # self.img_tensor = None
-        # self.idx = -1
         
         data_directory = Path(data_directory_path)
         
-        # path = data_directory_path + "/image_resnet_embedding/"
-        # observations = torch.zeros((566, 409, 512))
-        # for idx, name in enumerate(os.listdir(path)):
-        #     episode_name = path + name
-        #     img_embedding = torch.load(episode_name)
-        #     img_embedding.requires_grad = False
-        #     observations[idx] = img_embedding
-        
-        # path = data_directory_path + "/pre_processed_images/"
-        # # images are 128 * 128 * 1 = 16384 or 64 * 64 * 3 = 12288
-        # observations = torch.zeros((566, 409, 128*128*1))
-        # for idx, name in tqdm(enumerate(os.listdir(path))):
-        #     episode_name = path + name
-        #     img_tensor = torch.load(episode_name)
-        #     observations[idx] = img_tensor
+        rows = torch.load(self.data_directory_path + "/temp/graph_row_tensor.pth")
+        cols = torch.load(self.data_directory_path + "/temp/graph_cols_tensor.pth")
+        features = torch.load(self.data_directory_path + "/temp/graph_feature_tensor.pth")
+        weights = torch.load(self.data_directory_path + "/temp/graph_weight_tensor.pth")
         
         actions = torch.from_numpy(np.load(data_directory / "actions_seq.npy"))
         masks = torch.from_numpy(np.load(data_directory / "existence_mask.npy"))
@@ -248,7 +235,7 @@ class RelayKitchenVisionTrajectoryDatasetSingleLoading(TensorDataset, Trajectory
             actions, masks, goals
         )
         self.masks = masks
-        self.tensors = [actions, masks, goals]
+        self.tensors = [actions, masks, goals, rows, cols, features, weights]
         self.actions = self.tensors[0]
         self.onehot_goals = goals
 

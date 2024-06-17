@@ -61,8 +61,10 @@ class BesoAgent(BaseAgent):
             patience: int=10,
             encoder_name: str="ResNet18",
             obs_dim: int = 512,
+            hidden_dim_graph: int = 2048,
+            embedding_type: str = "none",
     ):
-        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs, encoder_name, obs_dim)
+        super().__init__(model, input_encoder, optimization, obs_modalities, goal_modalities, target_modality, device, max_train_steps, eval_every_n_steps, max_epochs, encoder_name, obs_dim, hidden_dim_graph, embedding_type)
 
         self.ema_helper = ExponentialMovingAverage(self.model.get_params(), decay, self.device)
         self.use_ema = use_ema
@@ -104,6 +106,8 @@ class BesoAgent(BaseAgent):
         # use kernel density estimator if true
         self.use_kde = use_kde
         self.noise_scheduler = 'exponential'
+        
+        self.embedding_type = embedding_type
         
     def get_scaler(self, scaler: Scaler):
         """
@@ -159,7 +163,8 @@ class BesoAgent(BaseAgent):
             wandb.log(
                 {
                     "loss": average_train_loss,
-                    "test_loss": avrg_test_mse
+                    "test_loss": avrg_test_mse,
+                    "learn_rate": np.array(self.lr_scheduler.get_last_lr())[0]
                 }
             )
             log.info("Epoch {}: Mean train batch loss mse is {}".format(epoch, average_train_loss))
@@ -316,7 +321,12 @@ class BesoAgent(BaseAgent):
         """
         noise_scheduler = self.noise_scheduler if noise_scheduler is None else noise_scheduler
         self.input_encoder.eval()
-        state, goal, _ = self.process_batch(batch, predict=True)
+        if self.embedding_type == "none":
+            state, goal, _ = self.process_batch(batch, predict=True)
+        else:
+            batch['graph_observation'] = batch['observation'][1]
+            batch['observation'] = batch['observation'][0]
+            state, goal, _ = self.process_batch(batch, predict=True)
         if len(state.shape) == 2  and self.window_size > 1:
             self.obs_context.append(state)
             input_state = torch.stack(tuple(self.obs_context), dim=1)

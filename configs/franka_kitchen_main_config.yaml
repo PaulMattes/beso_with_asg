@@ -38,13 +38,16 @@ obs_dim: 512 # state: 30, image: 512
 render: false
 goal_dim: 30
 
+hidden_dim_graph: 256
+embedding_type: 'add' # none, add, concat
+
 # policy model params
 hidden_dim: 512 # 512 360
 use_spectral_norm: false
 num_hidden_layers: 8 # 8 6
 train_method: 'epochs' # steps, epochs
 max_train_steps: 40000
-max_epochs: 250
+max_epochs: 1
 eval_every_n_steps: 1000
 residual_style: True
 
@@ -53,7 +56,7 @@ evaluate_multigoal: True
 evaluate_sequential: false
 
 #obs_modalities: ['observation']
-obs_modalities: 'image_mlp' # state, image, image_mlp
+obs_modalities: 'image' # state, image, image_mlp
 goal_modalities: ['goal_observation']
 target_modality: 'action'
 

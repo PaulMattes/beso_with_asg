@@ -49,5 +49,7 @@ goal_window_size: ${future_seq_length}
 window_size: ${window_size}
 encoder_name: "ResNet18"
 obs_dim: ${obs_dim}
+hidden_dim_graph: ${hidden_dim_graph}
+embedding_type: ${embedding_type}
 
 patience: 80 # interval for early stopping during epoch training
