@@ -29,7 +29,7 @@ OBS_ELEMENT_GOALS = {
     "microwave": np.array([-0.75]),
     "kettle": np.array([-0.23, 0.75, 1.62, 0.99, 0.0, 0.0, -0.06]),
 }
-BONUS_THRESH = 0.9 #0.3
+BONUS_THRESH = 0.3
 
 OBJECT_NAMES = [
         "bottom burner",

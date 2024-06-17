@@ -567,7 +567,7 @@ class FrankaKitchenManager(BaseWorkspaceManger):
                 seed=self.seed,
                 train_fraction=self.train_fraction,
             )
-            _, _, _, onehot_labels = self.relay_traj[train_idx[goal_idx]]  # T x 7
+            onehot_labels = self.relay_traj[train_idx[goal_idx]][3]  # T x 7
             expected_mask = onehot_labels.max(0).values.bool().numpy()
             tasks = np.array(self.env.ALL_TASKS)
             expected_tasks = tasks[expected_mask].tolist()
