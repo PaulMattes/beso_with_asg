@@ -45,7 +45,7 @@ AFFORDANCE_NAMES = [
     "turn off",
     "open",
     "close",
-    "pick up",
+    #"pick up",
     "put down"
 ]
 
@@ -117,14 +117,10 @@ def create_graph():
             Graph.add_edge(open, name, weight=0)
             Graph.add_edge(close, name, weight=1)
         elif name == "kettle":
-            pickUp = AFFORDANCE_NAMES[4] + "_" + name
-            putDown = AFFORDANCE_NAMES[5] + "_" + name
-            Graph.add_node(pickUp)
+            putDown = AFFORDANCE_NAMES[4] + "_" + name
             Graph.add_node(putDown)
-            Graph.add_edge("Robot", pickUp, weight=0)
             Graph.add_edge("bottom burner", putDown, weight=1)
             Graph.add_edge("top burner", putDown, weight=0)
-            Graph.add_edge(pickUp, name, weight=0)
             Graph.add_edge(putDown, name, weight=1)
     return Graph
 
@@ -145,17 +141,10 @@ def update_graph(Graph, goal):
         Graph[open][name]['weight'] = 1
         Graph[close][name]['weight'] = 0
     elif ind == 6: # TODO task that modifies the graph at the start and at the end of execution -> fix it
-        pickUp = AFFORDANCE_NAMES[4] + "_" + name
-        putDown = AFFORDANCE_NAMES[5] + "_" + name
-        Graph["Robot"][pickUp]['weight'] = 1
+        putDown = AFFORDANCE_NAMES[4] + "_" + name
         Graph["bottom burner"][putDown]['weight'] = 0
         Graph["top burner"][putDown]['weight'] = 1
-        Graph[pickUp][name]['weight'] = 1
-        Graph[putDown][name]['weight'] = 0
-        Graph.add_edge("bottom burner", putDown, weight=1)
-        Graph.add_edge("top burner", putDown, weight=0)
-        Graph.add_edge(pickUp, name, weight=0)
-        Graph.add_edge(putDown, name, weight=1)
+        Graph[putDown][name]['weight'] = 1
 
 def plot_graph(G, name = None):
     # Define node and edge visualization settings
