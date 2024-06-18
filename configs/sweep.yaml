@@ -1,0 +1,22 @@
+command:
+  - ${env}
+  - ${interpreter}
+  - ${program}
+  - ${args_no_hyphens}
+method: grid # bayes
+metric:
+  goal: maximize
+  name: multigoal/Average_reward
+name: hyperparameter_sweep_image_graph
+parameters:
+  hidden_dim_graph:
+    values:
+      - 256
+      - 512
+      - 1024
+  obs_dim:
+    values:
+      - 256
+      - 512
+      - 1024
+program: ./scripts/training.py

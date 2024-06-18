@@ -37,7 +37,7 @@ class ImageGraphNet(nn.Module):
         self.fc_layer = nn.Linear(n_inputs, obs_dim).to(device)
         self.vision_model.fc = self.fc_layer
         
-        self.graph_model = GraphEmbedder(14, hidden_dim, obs_dim, 0, 'GCN', 'add').to(device)
+        self.graph_model = GraphEmbedder(13, hidden_dim, obs_dim, 0, 'GCN', 'add').to(device)
         
         self.emb_type = emb_type
         
